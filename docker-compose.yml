@@ -1,0 +1,41 @@
+version: '3'
+services: 
+  app:
+    build: .
+    image: compose-example-python:dev
+    volumes:
+      - ./:/code
+    entrypoint:
+      - "/bin/sh"
+      - -ecx
+      - | 
+          /wait && watchmedo auto-restart --recursive --pattern="*.py"  --directory="." python app/app.py
+    depends_on: 
+      - redis
+      - cassandra
+    environment: 
+      WAIT_HOSTS: redis:6379,cassandra:9042
+
+  python-tests:
+    image: compose-example-python:dev
+    volumes:
+      - ./:/code     
+    entrypoint:
+      - "/bin/sh"
+      - -ecx
+      - | 
+          /wait && watchmedo  auto-restart --recursive --pattern="*.py"  --directory="." pytest
+    depends_on: 
+      - app
+    environment: 
+      WAIT_HOSTS: redis:6379
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports: ["6379"]
+  
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports: ["9042", "9160"]
